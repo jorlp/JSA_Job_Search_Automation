@@ -34,33 +34,7 @@ function readEmails() {
 
     });
 }
-/**
-function processJobOffer(message) {
 
-        const Titre = message.getSubject();
-        const ID_Message = message.getId();
-        const bodyText = message.getPlainBody();
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const foundUrls = bodyText.match(urlRegex);
-
-        let Lien_Offre = 'Lien non trouvé';
-
-        if (foundUrls && foundUrls.length > 0) {
-          Lien_Offre = foundUrls[0];
-        }
-
-        Logger.log(`[INFOS BASE] Titre : ${Titre}`);
-        Logger.log(`[EXTRACTION] Lien de l'offre extrait: ${Lien_Offre}`);
-      
-      return {
-        Titre: Titre,
-        Lien: Lien_Offre,
-        ID: ID_Message,
-        Body: bodyText
-      };
-      
-      }
-       */
 function processJobOffer(message) {
     const fullSubject = message.getSubject(); 
     const bodyHTML = message.getBody(); 
@@ -90,23 +64,22 @@ function processJobOffer(message) {
 function parseHelloWork(subject, htmlBody, id) {
     Logger.log("[PARSING] Tentative de parsing HelloWork...");
 
-    const hwRegex = /https:\/\/emails\.hellowork\.com\/clic\/[a-f0-9\-]+\/\d+\/[a-f0-9]+\/[a-z0-9\.]+@[a-z0-9\-]+\.[a-z]+\/[a-zA-Z0-9\-]+(?:%[0-9a-f]{2})*/i;
-    const match = subject.match(hwRegex);
+    // 🎯 CORRECTION: Utiliser le RegExp de SUJET pour extraire les données
+    const hwSubjectRegex = /\((.+?)\s*-\s*(.+?)\s*-\s*(.+?)\)/i;
+    const match = subject.match(hwSubjectRegex);
 
     let Titre = subject.trim();
     let Lieu = 'Non spécifié';
     let Contrat = 'Non spécifié';
     let Entreprise = 'Non spécifié';
-    let Lien_Offre = 'Lien non trouvé';
-
+    
     if (match) {
-        Titre = match[1].trim();     
-        Lieu = match[2].trim();       
-        Contrat = match[3].trim();    
+        Titre = match[1].trim();     
+        Lieu = match[2].trim();       
+        Contrat = match[3].trim();    
     }
     
-    // --- Recherche de l'Entreprise dans le corps HTML ---
-    // Cette partie nécessite votre test de RegExp ciblé !
+    // --- Recherche de l'Entreprise dans le corps HTML --- (Logique OK)
     const companyInBodyRegex = /(Entreprise|Société|Recruteur)[^>:]*[:>]?\s*([^<]+)/i;
     const companyMatch = htmlBody.match(companyInBodyRegex);
 
@@ -114,12 +87,9 @@ function parseHelloWork(subject, htmlBody, id) {
         Entreprise = companyMatch[2].trim().replace(/\s{2,}/g, ' '); 
     }
     
-    // --- Extraction du Lien ---
-    const urlRegex = /(https?:\/\/[^\s]+)/g; 
-    const foundUrls = htmlBody.match(urlRegex);
-    if (foundUrls && foundUrls.length > 0) {
-      Lien_Offre = foundUrls[0]; 
-    }
+    // --- Correction de l'Extraction du Lien (Nécessite extractJobLink) ---
+    // Utilisation de la nouvelle fonction robuste
+    let Lien_Offre = extractJobLink(htmlBody, 'hellowork.com'); 
     
     return { Titre, Entreprise, Lieu, Lien: Lien_Offre, ID: id, Contrat };
 }
@@ -131,33 +101,24 @@ function parseHelloWork(subject, htmlBody, id) {
 function parseIndeed(subject, htmlBody, id) {
     Logger.log("[PARSING] Tentative de parsing Indeed...");
     
-    // 🎯 CORRECTION : Utiliser le pattern Indeed pour le sujet
-    const indeedRegex = /https?:\/\/fr\.indeed\.com\/rc\/clk\/dl\?jk=[a-zA-Z0-9]+&from=ja&qd=[^&]+&rd=[^&]+&tk=[a-zA-Z0-9]+&alid=[a-zA-Z0-9]+&bb=[^&]+&g1tAS=true/i;
-    const match = subject.match(indeedRegex);
+    // 🎯 CORRECTION: Utiliser le RegExp de SUJET pour extraire les données
+    const indeedSubjectRegex = /([^,]+?)\srecherche\s(un\/e|un|une)\s(.+?)\s+à\s+([^,]+?)\s+\+ \d+\s+nouvelles offres/i;
+    const match = subject.match(indeedSubjectRegex);
 
     let Titre = subject.trim();
     let Entreprise = 'Non spécifié';
     let Lieu = 'Non spécifié';
-    let Contrat = 'Non spécifié'; // Indeed ne fournit pas cette info dans le sujet
-    let Lien_Offre = 'Lien non trouvé';
-
+    let Contrat = 'Non spécifié';
+    
     if (match) {
-        // Le pattern Indeed capture :
         Entreprise = match[1].trim(); // Groupe 1: Septeo
-        Titre = match[3].trim();      // Groupe 3: Technicien informatique...
-        Lieu = match[4].trim();       // Groupe 4: toulouse (31)
-    } else {
-        // Si le pattern n'est pas reconnu (e.g., autre format Indeed), on laisse le sujet comme Titre par défaut.
-        Titre = subject.trim();
+        Titre = match[3].trim();      // Groupe 3: Technicien informatique...
+        Lieu = match[4].trim();       // Groupe 4: toulouse (31)
     }
     
-    // --- Extraction du Lien (Identique) ---
-    // Le lien est toujours dans le corps HTML
-    const urlRegex = /(https?:\/\/[^\s]+)/g; 
-    const foundUrls = htmlBody.match(urlRegex);
-    if (foundUrls && foundUrls.length > 0) {
-      Lien_Offre = foundUrls[0]; 
-    }
+    // --- Correction de l'Extraction du Lien (Nécessite extractJobLink) ---
+    // Utilisation de la nouvelle fonction robuste
+    let Lien_Offre = extractJobLink(htmlBody, 'indeed.com'); 
     
     // Ajout de logs pour vérification immédiate du résultat
     Logger.log(`[Indeed] Titre: ${Titre}, Entreprise: ${Entreprise}, Lieu: ${Lieu}, Lien: ${Lien_Offre}`);
@@ -169,35 +130,22 @@ function parseIndeed(subject, htmlBody, id) {
  * ACTUELLEMENT, le parsing est générique en attendant le pattern LinkedIn.
  */
 function parseLinkedIn(subject, htmlBody, id) {
-    // 1. Correction du log
     Logger.log("[PARSING] Tentative de parsing LinkedIn...");
     
-    // 2. Variable générique (à remplacer par le pattern LinkedIn)
-    // Le pattern est actuellement désactivé car il est celui d'Indeed.
-    const linkedInRegex = /https:\/\/www\.linkedin\.com\/comm\/jobs\/view\/\d+\/\?trackingId=[\w%]+&refId=[\w%]+&lipi=[\w%]+&midToken=[\w-]+&midSig=[\w-]+&trk=[\w-]+&trkEmail=[\w-]+&eid=[\w-]+&otpToken=[\w%]+/i;
-    const match = subject.match(linkedInRegex); // Va retourner null pour l'instant
+    // 🎯 CORRECTION: Le RegExp de Sujet LinkedIn doit être défini ici.
+    // Laissez-le à null en attendant votre exemple de sujet.
+    const linkedInSubjectRegex = null; // A REMPLACER
+    const match = subject.match(linkedInSubjectRegex);
     
-
     let Titre = subject.trim();
-    let Entreprise = 'Non spécifié';
-    let Lieu = 'Non spécifié';
-    let Contrat = 'Non spécifié'; 
-    let Lien_Offre = 'Lien non trouvé';
-
-    if (match) {
-        // Cette section sera remplie une fois que nous aurons le pattern LinkedIn
-        Entreprise = match[1].trim(); 
-        Titre = match[2].trim(); 
-        Lieu = match[3].trim(); 
-    } else {
-        // En cas d'échec du parsing, on fait une tentative pour trouver l'Entreprise dans le corps HTML
-        const companyInBodyRegex = /(Entreprise|Société|Recruteur)[^>:]*[:>]?\s*([^<]+)/i;
-        const companyMatch = htmlBody.match(companyInBodyRegex);
-
-        if (companyMatch && companyMatch[2]) {
-            Entreprise = companyMatch[2].trim().replace(/\s{2,}/g, ' '); 
-        }
-    }
+    // ... (Reste de l'extraction des données) ...
+    
+    // --- Correction de l'Extraction du Lien (Nécessite extractJobLink) ---
+    let Lien_Offre = extractJobLink(htmlBody, 'linkedin.com'); 
+    
+    // ... (Reste du retour) ...
+    return { Titre, Entreprise, Lieu, Lien: Lien_Offre, ID: id, Contrat };
+}
     
     // --- Extraction du Lien (Identique) ---
     const urlRegex = /(https?:\/\/[^\s]+)/g; 
