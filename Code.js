@@ -64,7 +64,7 @@ function processJobOffer(message) {
 function parseHelloWork(subject, htmlBody, id) {
     Logger.log("[PARSING] Tentative de parsing HelloWork...");
 
-    // 🎯 CORRECTION: Utiliser le RegExp de SUJET pour extraire les données
+    // CORRECTION: Utiliser le RegExp de SUJET pour extraire les données
     const hwSubjectRegex = /\((.+?)\s*-\s*(.+?)\s*-\s*(.+?)\)/i;
     const match = subject.match(hwSubjectRegex);
 
@@ -101,7 +101,7 @@ function parseHelloWork(subject, htmlBody, id) {
 function parseIndeed(subject, htmlBody, id) {
     Logger.log("[PARSING] Tentative de parsing Indeed...");
     
-    // 🎯 CORRECTION: Utiliser le RegExp de SUJET pour extraire les données
+    // CORRECTION: Utiliser le RegExp de SUJET pour extraire les données
     const indeedSubjectRegex = /([^,]+?)\srecherche\s(un\/e|un|une)\s(.+?)\s+à\s+([^,]+?)\s+\+ \d+\s+nouvelles offres/i;
     const match = subject.match(indeedSubjectRegex);
 
@@ -132,7 +132,7 @@ function parseIndeed(subject, htmlBody, id) {
 function parseLinkedIn(subject, htmlBody, id) {
     Logger.log("[PARSING] Tentative de parsing LinkedIn...");
     
-    // 🎯 CORRECTION: Le RegExp de Sujet LinkedIn doit être défini ici.
+    // CORRECTION: Le RegExp de Sujet LinkedIn doit être défini ici.
     // Laissez-le à null en attendant votre exemple de sujet.
     const linkedInSubjectRegex = null; // A REMPLACER
     const match = subject.match(linkedInSubjectRegex);
